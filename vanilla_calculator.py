@@ -29,13 +29,18 @@ loan_tenure = float(loan_tenure_input)/12
 loan_interest_rate = float(loan_interest_rate_input)/100
 loan_start_date = datetime.strptime(loan_start_input, "%b-%y")
 
+############################
 #calculation Monthly EMI
+############################
+
 monthly_interest_rate = loan_interest_rate / 12
 total_payments_count = loan_tenure * 12
 fixed_monthly_payment = (loan_amount * monthly_interest_rate * ((1.0+monthly_interest_rate)**total_payments_count))/(((1.0+monthly_interest_rate)**total_payments_count)-1)
 print('Your Monthly EMI:',round(fixed_monthly_payment))
 
+##############################
 #Month-on-Month Amortization
+##############################
 amortization_df = pd.DataFrame(columns=['MONTH','YEAR','OPENING_BALANCE','EMI','INTEREST','PRINCIPAL','CLOSING_BALANCE'],index=[i for i in range(loan_tenure_input)])
 amortization_df['EMI'] = round(fixed_monthly_payment)
 for i in range(loan_tenure_input):
@@ -44,7 +49,7 @@ for i in range(loan_tenure_input):
         year = loan_start_date.year
         amortization_df.loc[i,'MONTH'] = calendar.month_name[month_number]
         amortization_df.loc[i,'YEAR'] = year
-        amortization_df.loc[i,'OPENING_BALANCE'] = loan_amount
+        amortization_df.loc[i,'OPENING_BALANCE'] = round(loan_amount)
     else:
         loan_date_itr = loan_start_date + relativedelta(months=i)
         month_number = loan_date_itr.month
@@ -58,8 +63,49 @@ for i in range(loan_tenure_input):
     amortization_df.loc[i,'CLOSING_BALANCE'] = round(amortization_df.loc[i,'OPENING_BALANCE'] - amortization_df.loc[i,'PRINCIPAL'])
 
 mom_amortization_df = amortization_df.copy()
-mom_amortization_df.to_csv(current_path+'Output/VANILLA_MOM_AMORTIZATION.csv',index=False)
-    
+#mom_amortization_df.to_csv(current_path+'Output/VANILLA_MOM_AMORTIZATION.csv',index=False)
+
+##############################
+#Year-on-Year Amortization
+##############################
+amortization_df = mom_amortization_df.groupby('YEAR')[['EMI','INTEREST','PRINCIPAL']].sum().reset_index()
+temp = mom_amortization_df[['YEAR','OPENING_BALANCE']].drop_duplicates(keep='first',subset='YEAR')
+amortization_df = pd.merge(amortization_df,temp,on='YEAR',how='left')
+temp = mom_amortization_df[['YEAR','CLOSING_BALANCE']].drop_duplicates(keep='last',subset='YEAR')
+amortization_df = pd.merge(amortization_df,temp,on='YEAR',how='left')
+amortization_df = amortization_df[['YEAR','OPENING_BALANCE','EMI','INTEREST','PRINCIPAL','CLOSING_BALANCE']]
+
+yoy_amortization_df = amortization_df.copy()
+#yoy_amortization_df.to_csv(current_path+'Output/VANILLA_YOY_AMORTIZATION.csv',index=False)
+
+
+#############################
+#SUMMARY
+#############################
+summary_dict = {'TOTAL LOAN AMOUNT':loan_amount,
+                'INTEREST RATE':loan_interest_rate*100,
+                'TENURE IN MONTHS':loan_tenure*12,
+                'LOAN START DATE':loan_start_input,
+                'MONTHLY EMI':round(fixed_monthly_payment),
+                'TOTAL INTEREST PAY':yoy_amortization_df['INTEREST'].sum(),
+                'TOTAL AMOUNT PAY':yoy_amortization_df['INTEREST'].sum()+loan_amount}
+
+
+summary_df = pd.DataFrame(columns=['KEY','VALUE'],index=[i for i in range(len(summary_dict.keys()))])
+
+for i, key_value in enumerate(summary_dict.keys()):
+    summary_df.loc[i,'KEY'] = key_value
+    summary_df.loc[i,'VALUE'] = summary_dict[key_value]
+
+print('Saving Excel File')
+with pd.ExcelWriter(current_path+"Output/VANILLA BASED AMORTIZATION.xlsx", engine="xlsxwriter") as writer:
+    summary_df.to_excel(writer, sheet_name="Summary", index=False)
+    yoy_amortization_df.to_excel(writer, sheet_name="YOY", index=False)
+    mom_amortization_df.to_excel(writer, sheet_name="MOM", index=False)
+
+
+
+
 
 
 
