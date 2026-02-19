@@ -34,7 +34,7 @@ loan_start_date = datetime.strptime(loan_start_input, "%b-%y")
 #calculation Monthly EMI
 ############################
 
-fixed_monthly_payment = monthly_emi(loan_amount,loan_interest_rate,loan_tenure)
+monthly_interest_rate, fixed_monthly_payment = monthly_emi(loan_amount,loan_interest_rate,loan_tenure)
 print('Your Monthly EMI:',round(fixed_monthly_payment))
 
 ##############################
@@ -83,6 +83,7 @@ summary_dict = {'TOTAL LOAN AMOUNT':loan_amount,
                 'INTEREST RATE':loan_interest_rate*100,
                 'TENURE IN MONTHS':loan_tenure*12,
                 'LOAN START DATE':loan_start_input,
+                'LOAN END DATE':loan_date_itr.strftime(format='%b-%Y').upper(),
                 'MONTHLY EMI':round(fixed_monthly_payment),
                 'TOTAL INTEREST PAY':yoy_amortization_df['INTEREST'].sum(),
                 'TOTAL AMOUNT PAY':yoy_amortization_df['INTEREST'].sum()+loan_amount}

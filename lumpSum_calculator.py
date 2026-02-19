@@ -17,7 +17,8 @@ if mode == 'USER':
     loan_interest_rate_input = input('Enter Annual Interest Rate (in %):')
     loan_tenure_input = input('Enter Loan Tenure (in Months): ')
     loan_start_input = input('Enter Loan start date (eg FEB-26): ').upper()
-    lum_sum_amount_input = input('Enter Lum Sum amount invested (in numbers): ')
+    lum_sum_amount_input = input('Enter Lum Sum amount invested (in [numbers]): ')
+    lum_sum_date_input = input('Enter Lum Sum invested date (eg [FEB-26]): ')
 
 else:
     loan_amount_input = LOAN_AMT
@@ -25,17 +26,99 @@ else:
     loan_tenure_input = TENURE_IN_MONTH
     loan_start_input = LOAN_START_DATE
     lum_sum_amount_input = LUMSUM_AMT
+    lum_sum_date_input = LUMSUM_AMT_DATE
 
 
 loan_amount = float(loan_amount_input)
 loan_tenure = float(loan_tenure_input)/12
 loan_interest_rate = float(loan_interest_rate_input)/100
 loan_start_date = datetime.strptime(loan_start_input, "%b-%y")
-lum_sum_amount = float(lum_sum_amount_input)
+lum_sum_amount = list(lum_sum_amount_input)
+lum_sum_date = list(lum_sum_date_input)
+lum_sum_date = [datetime.strptime(i.upper(), "%b-%y") for i in lum_sum_date]
+lum_sum_detail_dict = dict(zip(lum_sum_date, lum_sum_amount))
 
 ############################
 #calculation Monthly EMI
 ############################
 
-fixed_monthly_payment = monthly_emi(loan_amount,loan_interest_rate,loan_tenure)
+monthly_interest_rate, fixed_monthly_payment = monthly_emi(loan_amount,loan_interest_rate,loan_tenure)
 print('Your Monthly EMI:',round(fixed_monthly_payment))
+
+##############################
+#Month-on-Month Amortization
+##############################
+amortization_df = pd.DataFrame(columns=['MONTH','YEAR','OPENING_BALANCE','EMI','INTEREST','PRINCIPAL','CLOSING_BALANCE'],index=[i for i in range(loan_tenure_input)])
+amortization_df['EMI'] = round(fixed_monthly_payment)
+revised_loan_tenure = loan_tenure_input
+for i in range(loan_tenure_input):
+    if i == 0:
+        loan_date_itr = loan_start_date
+        amortization_df.loc[i,'OPENING_BALANCE'] = round(loan_amount)
+    else:
+        loan_date_itr = loan_start_date + relativedelta(months=i)
+        amortization_df.loc[i,'OPENING_BALANCE'] = amortization_df.loc[i-1,'CLOSING_BALANCE']
+    
+    month_number = loan_date_itr.month
+    year = loan_date_itr.year
+    amortization_df.loc[i,'MONTH'] = calendar.month_name[month_number]
+    amortization_df.loc[i,'YEAR'] = year
+    
+    amortization_df.loc[i,'INTEREST'] = round(amortization_df.loc[i,'OPENING_BALANCE']*monthly_interest_rate)
+
+    if loan_date_itr in lum_sum_detail_dict.keys():
+        amortization_df.loc[i,'PRINCIPAL'] = round(amortization_df.loc[i,'EMI'] - amortization_df.loc[i,'INTEREST'] + lum_sum_detail_dict[loan_date_itr])
+        amortization_df.loc[i,'CLOSING_BALANCE'] = round(amortization_df.loc[i,'OPENING_BALANCE'] - amortization_df.loc[i,'PRINCIPAL'])
+        revised_loan_tenure = round(lum_sum.revised_tenure(fixed_monthly_payment,amortization_df.loc[i,'CLOSING_BALANCE'],monthly_interest_rate)) + i
+
+    else:
+        amortization_df.loc[i,'PRINCIPAL'] = round(amortization_df.loc[i,'EMI'] - amortization_df.loc[i,'INTEREST'])
+        amortization_df.loc[i,'CLOSING_BALANCE'] = round(amortization_df.loc[i,'OPENING_BALANCE'] - amortization_df.loc[i,'PRINCIPAL'])
+    
+    
+
+    if i == revised_loan_tenure:
+        break
+
+amortization_df.dropna(how='any',inplace=True)
+mom_amortization_df = amortization_df.copy()
+
+##############################
+#Year-on-Year Amortization
+##############################
+amortization_df = mom_amortization_df.groupby('YEAR')[['EMI','INTEREST','PRINCIPAL']].sum().reset_index()
+temp = mom_amortization_df[['YEAR','OPENING_BALANCE']].drop_duplicates(keep='first',subset='YEAR')
+amortization_df = pd.merge(amortization_df,temp,on='YEAR',how='left')
+temp = mom_amortization_df[['YEAR','CLOSING_BALANCE']].drop_duplicates(keep='last',subset='YEAR')
+amortization_df = pd.merge(amortization_df,temp,on='YEAR',how='left')
+amortization_df = amortization_df[['YEAR','OPENING_BALANCE','EMI','INTEREST','PRINCIPAL','CLOSING_BALANCE']]
+
+yoy_amortization_df = amortization_df.copy()
+
+#############################
+#SUMMARY
+#############################
+summary_dict = {'TOTAL LOAN AMOUNT':loan_amount,
+                'INTEREST RATE':loan_interest_rate*100,
+                'ORIGINAL TENURE IN MONTHS':loan_tenure*12,
+                'REVISED TENURE IN MONTHS':revised_loan_tenure,
+                'LOAN START DATE':loan_start_input,
+                'ORIGINAL LOAN END DATE':(loan_start_date + relativedelta(months=loan_tenure_input-1)).strftime(format='%b-%Y').upper(),
+                'REVISED LOAN END DATE':loan_date_itr.strftime(format='%b-%Y').upper(),
+                'MONTHLY EMI':round(fixed_monthly_payment),
+                'TOTAL INTEREST PAY':yoy_amortization_df['INTEREST'].sum(),
+                'TOTAL AMOUNT PAY':yoy_amortization_df['INTEREST'].sum()+loan_amount,
+                'LUMSUM AMOUNT PAY':sum(lum_sum_amount)}
+
+
+summary_df = pd.DataFrame(columns=['KEY','VALUE'],index=[i for i in range(len(summary_dict.keys()))])
+
+for i, key_value in enumerate(summary_dict.keys()):
+    summary_df.loc[i,'KEY'] = key_value
+    summary_df.loc[i,'VALUE'] = summary_dict[key_value]
+
+print('Saving Excel File')
+with pd.ExcelWriter(current_path+"Output/LUMSUM BASED AMORTIZATION.xlsx", engine="xlsxwriter") as writer:
+    summary_df.to_excel(writer, sheet_name="Summary", index=False)
+    yoy_amortization_df.to_excel(writer, sheet_name="YOY", index=False)
+    mom_amortization_df.to_excel(writer, sheet_name="MOM", index=False)
