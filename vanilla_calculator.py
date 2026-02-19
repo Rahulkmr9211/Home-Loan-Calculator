@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import calendar
+from support import *
 
 
 
@@ -33,9 +34,7 @@ loan_start_date = datetime.strptime(loan_start_input, "%b-%y")
 #calculation Monthly EMI
 ############################
 
-monthly_interest_rate = loan_interest_rate / 12
-total_payments_count = loan_tenure * 12
-fixed_monthly_payment = (loan_amount * monthly_interest_rate * ((1.0+monthly_interest_rate)**total_payments_count))/(((1.0+monthly_interest_rate)**total_payments_count)-1)
+fixed_monthly_payment = monthly_emi(loan_amount,loan_interest_rate,loan_tenure)
 print('Your Monthly EMI:',round(fixed_monthly_payment))
 
 ##############################
@@ -63,7 +62,6 @@ for i in range(loan_tenure_input):
     amortization_df.loc[i,'CLOSING_BALANCE'] = round(amortization_df.loc[i,'OPENING_BALANCE'] - amortization_df.loc[i,'PRINCIPAL'])
 
 mom_amortization_df = amortization_df.copy()
-#mom_amortization_df.to_csv(current_path+'Output/VANILLA_MOM_AMORTIZATION.csv',index=False)
 
 ##############################
 #Year-on-Year Amortization
@@ -76,7 +74,6 @@ amortization_df = pd.merge(amortization_df,temp,on='YEAR',how='left')
 amortization_df = amortization_df[['YEAR','OPENING_BALANCE','EMI','INTEREST','PRINCIPAL','CLOSING_BALANCE']]
 
 yoy_amortization_df = amortization_df.copy()
-#yoy_amortization_df.to_csv(current_path+'Output/VANILLA_YOY_AMORTIZATION.csv',index=False)
 
 
 #############################
