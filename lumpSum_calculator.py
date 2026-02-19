@@ -86,14 +86,7 @@ mom_amortization_df = amortization_df.copy()
 ##############################
 #Year-on-Year Amortization
 ##############################
-amortization_df = mom_amortization_df.groupby('YEAR')[['EMI','INTEREST','PRINCIPAL']].sum().reset_index()
-temp = mom_amortization_df[['YEAR','OPENING_BALANCE']].drop_duplicates(keep='first',subset='YEAR')
-amortization_df = pd.merge(amortization_df,temp,on='YEAR',how='left')
-temp = mom_amortization_df[['YEAR','CLOSING_BALANCE']].drop_duplicates(keep='last',subset='YEAR')
-amortization_df = pd.merge(amortization_df,temp,on='YEAR',how='left')
-amortization_df = amortization_df[['YEAR','OPENING_BALANCE','EMI','INTEREST','PRINCIPAL','CLOSING_BALANCE']]
-
-yoy_amortization_df = amortization_df.copy()
+yoy_amortization_df = YOY_amortization_calculation(mom_amortization_df)
 
 #############################
 #SUMMARY
