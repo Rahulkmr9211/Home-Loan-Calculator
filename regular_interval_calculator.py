@@ -104,6 +104,7 @@ for i, key_value in enumerate(summary_dict.keys()):
     summary_df.loc[i,'KEY'] = key_value
     summary_df.loc[i,'VALUE'] = summary_dict[key_value]
 
+print(summary_df)
 print('Saving Excel File')
 with pd.ExcelWriter(current_path+"Output/REGULAR INTERVAL BASED AMORTIZATION.xlsx", engine="xlsxwriter") as writer:
     summary_df.to_excel(writer, sheet_name="Summary", index=False)
