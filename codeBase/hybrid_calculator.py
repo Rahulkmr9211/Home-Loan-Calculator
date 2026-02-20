@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import calendar
-from support import *
+from codeBase.support import *
 import ast
 
 
@@ -18,6 +18,8 @@ if mode == 'USER':
     loan_interest_rate_input = input('Enter Annual Interest Rate (in %):')
     loan_tenure_input = input('Enter Loan Tenure (in Months): ')
     loan_start_input = input('Enter Loan start date (eg FEB-26): ').upper()
+    lum_sum_amount_input = input('Enter Lum Sum amount invested (in [numbers]): ')
+    lum_sum_date_input = input('Enter Lum Sum invested date (eg [FEB-26]): ')
     regular_amount_input = input('Enter Extra amount invested (in numbers): ')
     payment_months_input = input('Enter payment month number list (eg [1,2] max 12): ')
     regular_payment_start_date_input = input('Enter Loan start date (eg FEB-26): ').upper()
@@ -27,15 +29,23 @@ else:
     loan_interest_rate_input = INTEREST_RATE
     loan_tenure_input = TENURE_IN_MONTH
     loan_start_input = LOAN_START_DATE
+    lum_sum_amount_input = LUMSUM_AMT
+    lum_sum_date_input = LUMSUM_AMT_DATE
     regular_amount_input = REGULAR_AMT
     payment_months_input = REULAR_MONTHS
     regular_payment_start_date_input = REGULAR_PAYMENT_START_DATE
 
 loan_tenure_input = int(loan_tenure_input)
 loan_amount = float(loan_amount_input)
-loan_tenure = float(loan_tenure_input)/12
+loan_tenure = loan_tenure_input/12
 loan_interest_rate = float(loan_interest_rate_input)/100
 loan_start_date = datetime.strptime(loan_start_input, "%b-%y")
+#lumpsum
+lum_sum_amount = ast.literal_eval(lum_sum_amount_input)
+lum_sum_date = ast.literal_eval(lum_sum_date_input)
+lum_sum_date = [datetime.strptime(i.upper(), "%b-%y") for i in lum_sum_date]
+lum_sum_detail_dict = dict(zip(lum_sum_date, lum_sum_amount))
+#regular-interval
 regular_amount = float(regular_amount_input)
 payment_months = ast.literal_eval(payment_months_input)
 regular_payment_start_date = datetime.strptime(regular_payment_start_date_input, "%b-%y")
@@ -66,14 +76,20 @@ for i in range(loan_tenure_input):
     amortization_df.loc[i,'YEAR'] = year
 
     amortization_df.loc[i,'INTEREST'] = round(amortization_df.loc[i,'OPENING_BALANCE']*monthly_interest_rate)
+    amortization_df.loc[i,'PRINCIPAL'] = round(amortization_df.loc[i,'EMI'] - amortization_df.loc[i,'INTEREST'])
+
+    if loan_date_itr in lum_sum_detail_dict.keys():
+        amortization_df.loc[i,'PRINCIPAL'] = round(amortization_df.loc[i,'PRINCIPAL'] + lum_sum_detail_dict[loan_date_itr])
+    
     if (month_number in payment_months) & (loan_date_itr >= regular_payment_start_date):
-        amortization_df.loc[i,'PRINCIPAL'] = round(amortization_df.loc[i,'EMI'] - amortization_df.loc[i,'INTEREST']+regular_amount)
-    else:
-        amortization_df.loc[i,'PRINCIPAL'] = round(amortization_df.loc[i,'EMI'] - amortization_df.loc[i,'INTEREST'])
+        amortization_df.loc[i,'PRINCIPAL'] = round(amortization_df.loc[i,'PRINCIPAL']+regular_amount)
+    
     amortization_df.loc[i,'CLOSING_BALANCE'] = round(amortization_df.loc[i,'OPENING_BALANCE'] - amortization_df.loc[i,'PRINCIPAL'])
 
     if amortization_df.loc[i,'CLOSING_BALANCE'] <= 0:
         break
+    
+    
 
 amortization_df.dropna(how='any',inplace=True)
 mom_amortization_df = amortization_df.copy()
@@ -91,6 +107,7 @@ summary_dict = {'TOTAL LOAN AMOUNT':loan_amount,
                 'ORIGINAL TENURE IN MONTHS':loan_tenure*12,
                 'REVISED TENURE IN MONTHS':len(mom_amortization_df)-1,
                 'REGULAR AMOUNT PAY':regular_amount,
+                'LUMSUM AMOUNT PAY':sum(lum_sum_amount),
                 'LOAN START DATE':loan_start_input,
                 'ORIGINAL LOAN END DATE':(loan_start_date + relativedelta(months=loan_tenure_input-1)).strftime(format='%b-%Y').upper(),
                 'REVISED LOAN END DATE':loan_date_itr.strftime(format='%b-%Y').upper(),
@@ -108,7 +125,7 @@ for i, key_value in enumerate(summary_dict.keys()):
 print(summary_df)
 print('Saving Excel File')
 os.makedirs(current_path+'Output', exist_ok=True)
-with pd.ExcelWriter(current_path+"Output/REGULAR INTERVAL BASED AMORTIZATION.xlsx", engine="xlsxwriter") as writer:
+with pd.ExcelWriter(current_path+"Output/HYBRID BASED AMORTIZATION.xlsx", engine="xlsxwriter") as writer:
     summary_df.to_excel(writer, sheet_name="Summary", index=False)
     yoy_amortization_df.to_excel(writer, sheet_name="YOY", index=False)
     mom_amortization_df.to_excel(writer, sheet_name="MOM", index=False)

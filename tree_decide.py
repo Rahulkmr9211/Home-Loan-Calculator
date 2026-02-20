@@ -12,16 +12,16 @@ decide = int(input(sentense))
 print(decide)
 if decide == 1:
     print('Running Vanilla Calculator')
-    runpy.run_path("vanilla_calculator.py")
+    runpy.run_path("codeBase/vanilla_calculator.py")
 elif decide == 2:
     print('Running Lump Sum Calculator')
-    runpy.run_path("lumpSum_calculator.py")
+    runpy.run_path("codeBase/lumpSum_calculator.py")
 elif decide == 3:
     print('Running Regular Interval Calculator')
-    runpy.run_path("regular_interval_calculator.py")
+    runpy.run_path("codeBase/regular_interval_calculator.py")
 elif decide ==4:
     print('Running Advance Calculator')
-    runpy.run_path("hybrid_calculator.py")
+    runpy.run_path("codeBase/hybrid_calculator.py")
 else:
     print('incorrect Input')
 
