@@ -124,6 +124,7 @@ for i, key_value in enumerate(summary_dict.keys()):
 
 print(summary_df)
 print('Saving Excel File')
+os.makedirs(current_path+'Output', exist_ok=True)
 with pd.ExcelWriter(current_path+"Output/HYBRID BASED AMORTIZATION.xlsx", engine="xlsxwriter") as writer:
     summary_df.to_excel(writer, sheet_name="Summary", index=False)
     yoy_amortization_df.to_excel(writer, sheet_name="YOY", index=False)

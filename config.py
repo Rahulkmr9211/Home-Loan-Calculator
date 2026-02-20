@@ -1,0 +1,9 @@
+LOAN_AMT = '2585266'        #For all
+INTEREST_RATE = '7.35'      #For all
+TENURE_IN_MONTH = '182'     #For all
+LOAN_START_DATE = 'FEB-26'  #For all
+LUMSUM_AMT = '[50000,250000]'                   #For Lumsum & Hybrid
+LUMSUM_AMT_DATE = "['JUN-26','AUG-26']"         #For Lumsum & Hybrid
+REGULAR_AMT = '100000'                          #For Regular interval & Hybrid
+REULAR_MONTHS = "[1,2,3,4,5,6,7,8,9,10,11,12]"  #For Regular interval & Hybrid
+REGULAR_PAYMENT_START_DATE = 'JUN-26'           #For Regular interval & Hybrid
