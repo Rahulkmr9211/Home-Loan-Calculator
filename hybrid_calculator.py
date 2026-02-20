@@ -5,6 +5,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import calendar
 from support import *
+import ast
 
 
 
@@ -34,18 +35,19 @@ else:
     payment_months_input = REULAR_MONTHS
     regular_payment_start_date_input = REGULAR_PAYMENT_START_DATE
 
+loan_tenure_input = int(loan_tenure_input)
 loan_amount = float(loan_amount_input)
-loan_tenure = float(loan_tenure_input)/12
+loan_tenure = loan_tenure_input/12
 loan_interest_rate = float(loan_interest_rate_input)/100
 loan_start_date = datetime.strptime(loan_start_input, "%b-%y")
 #lumpsum
-lum_sum_amount = list(lum_sum_amount_input)
-lum_sum_date = list(lum_sum_date_input)
+lum_sum_amount = ast.literal_eval(lum_sum_amount_input)
+lum_sum_date = ast.literal_eval(lum_sum_date_input)
 lum_sum_date = [datetime.strptime(i.upper(), "%b-%y") for i in lum_sum_date]
 lum_sum_detail_dict = dict(zip(lum_sum_date, lum_sum_amount))
 #regular-interval
 regular_amount = float(regular_amount_input)
-payment_months = list(payment_months_input)
+payment_months = ast.literal_eval(payment_months_input)
 regular_payment_start_date = datetime.strptime(regular_payment_start_date_input, "%b-%y")
 
 ############################

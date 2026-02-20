@@ -24,7 +24,7 @@ else:
     loan_tenure_input = TENURE_IN_MONTH
     loan_start_input = LOAN_START_DATE
 
-
+loan_tenure_input = int(loan_tenure_input)
 loan_amount = float(loan_amount_input)
 loan_tenure = float(loan_tenure_input)/12
 loan_interest_rate = float(loan_interest_rate_input)/100
